@@ -12,7 +12,7 @@ from app import models, db
 from sqlalchemy.orm import joinedload
 
 
-BOOK_COMMAND = '/sb_'
+BOOK_CMD = '/sb_'
 CALLBACK_DATA_CMD_PREFIX = 'cmd:'
 
 
@@ -56,7 +56,7 @@ def index():
         return _user_sayfa(bot, update)
     elif bot_command == '/mybook':
         return _user_book(bot, update)
-    elif bot_command and bot_command.startswith(BOOK_COMMAND):
+    elif bot_command and bot_command.startswith(BOOK_CMD):
         return _save_user_book(bot, update, bot_command)
     elif update.message.text.strip().isdigit():
         return _save_pages(bot, update)
@@ -65,7 +65,7 @@ def index():
 
 
 def _save_user(bot: Bot, update: Update):
-    user, is_created = models.User.get_or_create(update.message.from_, _flag=True)
+    user, is_created = models.User.get_or_create(update.message.from_, _flag=True, _update=True)
     return jsonify(bot.send_message(
         chat=update.message.chat, 
         text='Welcome{}, {}'.format('' if is_created else ' back', user.full_name),
@@ -76,7 +76,7 @@ def _save_user(bot: Bot, update: Update):
 def _save_user_book(bot: Bot, update: Update, bot_command: str):
     user = models.User.get_or_create(update.callback_query.from_)
 
-    book_id = bot_command.lstrip(BOOK_COMMAND)
+    book_id = bot_command.lstrip(BOOK_CMD)
     try:
         book_id = int(book_id)
     except ValueError:
@@ -148,13 +148,13 @@ def _send_books_list(bot: Bot, update: Update):
     user_book = user.book
 
     # books_list_text = '\n'.join(
-    #     '{book_cmd}{book.id} {book.title}'.format(book_cmd=BOOK_COMMAND, book=book)
+    #     '{book_cmd}{book.id} {book.title}'.format(book_cmd=BOOK_CMD, book=book)
     #     for book in books
     # )
     markup = InlineKeyboardMarkup.from_rows_of(
         buttons=[
             InlineKeyboardMarkup.Button(text='{}{}'.format(b.title, '' if b != user_book else '(+)'),
-                                        callback_data='{}{}{}'.format(CALLBACK_DATA_CMD_PREFIX, BOOK_COMMAND, b.id))
+                                        callback_data='{}{}{}'.format(CALLBACK_DATA_CMD_PREFIX, BOOK_CMD, b.id))
             for b in books
         ]
     )
