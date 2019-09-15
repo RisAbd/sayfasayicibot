@@ -5,13 +5,15 @@ import logging
 
 from flask import Blueprint, request, jsonify, current_app
 
-from telegram.telegram import Update, Chat, Bot, Message
+from telegram.telegram import Update, Chat, Bot, Message, InlineKeyboardMarkup
 
 from app import models, db
 
 from sqlalchemy.orm import joinedload
 
-BOOK_COMMAND = '/ktb_'
+
+BOOK_COMMAND = '/sb_'
+CALLBACK_DATA_CMD_PREFIX = 'cmd:'
 
 
 logger = logging.getLogger(__name__)
@@ -22,18 +24,29 @@ bp = Blueprint('webhook', __name__)
 def index():
     update = Update.from_(request.json)
     
-    if update.type != Update.Type.MESSAGE:
+    if update.type == Update.Type.MESSAGE:
+        bot_command = update.message.bot_command
+    elif update.type == update.Type.CALLBACK_QUERY:
+        if update.callback_query.data:
+            data = update.callback_query.data
+            if data.startswith(CALLBACK_DATA_CMD_PREFIX):
+                bot_command = data[len(CALLBACK_DATA_CMD_PREFIX):]
+            else:
+                logger.warning('unknown callback_data: %r', data)
+                print(update)
+                return jsonify({})
+        else:
+            logger.warning('unknown callback_query: %r', update.callback_query)
+            return jsonify({})
+    else:
         logger.warning('TODO: handle %r', update)
         return jsonify({})
 
     bot = current_app.bot
 
-
-    bot_command = update.message.bot_command
-
     if bot_command == '/audio':
         return _send_audio(bot, update)
-    elif bot_command == '/listbooks':
+    elif bot_command == '/books':
         return _send_books_list(bot, update)
     elif bot_command == '/start':
         return _save_user(bot, update)
@@ -52,18 +65,7 @@ def index():
 
 
 def _save_user(bot: Bot, update: Update):
-    tg_user = update.message.from_
-    user = models.User.query.filter(models.User.id == tg_user.id).first()
-    is_created = False
-    if not user:
-        is_created = True
-        user = models.User.from_telegram_user(tg_user)
-    else:
-        for a in 'last_name first_name username language_code'.split():
-            if getattr(user, a) != getattr(tg_user, a):
-                setattr(user, a, getattr(tg_user, a))
-    db.session.add(user)
-    db.session.commit()
+    user, is_created = models.User.get_or_create(update.message.from_, _flag=True)
     return jsonify(bot.send_message(
         chat=update.message.chat, 
         text='Welcome{}, {}'.format('' if is_created else ' back', user.full_name),
@@ -72,14 +74,14 @@ def _save_user(bot: Bot, update: Update):
 
 
 def _save_user_book(bot: Bot, update: Update, bot_command: str):
-    user = models.User.query.get(update.message.from_.id)
-    assert user is not None, 'unregistered user: %r' % user
+    user = models.User.get_or_create(update.callback_query.from_)
+
     book_id = bot_command.lstrip(BOOK_COMMAND)
     try:
         book_id = int(book_id)
     except ValueError:
         return jsonify(bot.send_message(
-            chat=update.message.chat, 
+            chat=update.callback_query.message.chat, 
             text='unknown book: %s' % book_id, 
             as_webhook_response=True,
         ))
@@ -87,7 +89,7 @@ def _save_user_book(bot: Bot, update: Update, bot_command: str):
     book = models.Book.query.get(book_id)
     if not book:
         return jsonify(bot.send_message(
-            chat=update.message.chat, 
+            chat=update.callback_query.message.chat, 
             text='unknown book: %s' % book_id, 
             as_webhook_response=True,
         ))
@@ -97,7 +99,7 @@ def _save_user_book(bot: Bot, update: Update, bot_command: str):
     db.session.commit()
 
     return jsonify(bot.send_message(
-        chat=update.message.chat, 
+        chat=update.callback_query.message.chat, 
         text='`%s` is set as your default book' % book.title, 
         parse_mode=Message.ParseMode.MARKDOWN,
         as_webhook_response=True,
@@ -118,8 +120,7 @@ def _save_pages(bot: Bot, update: Update):
             as_webhook_response=True,
         ))
     
-    user = models.User.query.get(update.message.from_.id)
-    assert user is not None, 'unregistered user: %r' % user
+    user = models.User.get_or_create(update.message.from_)
 
     if not user.book:
         return jsonify(bot.send_message(
@@ -142,23 +143,32 @@ def _save_pages(bot: Bot, update: Update):
 def _send_books_list(bot: Bot, update: Update):
 
     books = models.Book.query.options(joinedload('author')).all()
+    
+    user = models.User.get_or_create(update.message.from_)
+    user_book = user.book
 
-    books_list_text = '\n'.join(
-        '{book_cmd}{book.id} {book.title}'.format(book_cmd=BOOK_COMMAND, book=book)
-        for book in books
+    # books_list_text = '\n'.join(
+    #     '{book_cmd}{book.id} {book.title}'.format(book_cmd=BOOK_COMMAND, book=book)
+    #     for book in books
+    # )
+    markup = InlineKeyboardMarkup.from_rows_of(
+        buttons=[
+            InlineKeyboardMarkup.Button(text='{}{}'.format(b.title, '' if b != user_book else '(+)'),
+                                        callback_data='{}{}{}'.format(CALLBACK_DATA_CMD_PREFIX, BOOK_COMMAND, b.id))
+            for b in books
+        ]
     )
 
     return jsonify(bot.send_message(
         chat=update.message.chat, 
-        text=books_list_text, 
+        text='here is a list of available books',
+        reply_markup=markup,
         as_webhook_response=True,
     ))
 
 
 def _user_stats(bot: Bot, update: Update):
-    
-    user = models.User.query.get(update.message.from_.id)
-    assert user is not None, 'unregistered user: %r' % user
+    user = models.User.get_or_create(update.message.from_)
 
     now = datetime.now()
     last_day_sayfa = db.session.query(db.func.sum(models.Sayfa.count))\
@@ -199,9 +209,7 @@ def _map_sayfa(sayfa, now):
 
 
 def _user_sayfa(bot: Bot, update: Update):
-    
-    user = models.User.query.get(update.message.from_.id)
-    assert user is not None, 'unregistered user: %r' % user
+    user = models.User.get_or_create(update.message.from_)
 
     now = datetime.now()
     text = '\n'.join(
@@ -220,8 +228,7 @@ def _user_sayfa(bot: Bot, update: Update):
 
 
 def _user_book(bot: Bot, update: Update):
-    user = models.User.query.get(update.message.from_.id)
-    assert user is not None, 'unregistered user: %r' % user
+    user = models.User.get_or_create(update.message.from_)
 
     if not user.book:
         return jsonify(bot.send_message(

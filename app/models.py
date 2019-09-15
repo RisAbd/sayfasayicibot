@@ -50,6 +50,26 @@ class User(db.Model):
     def from_telegram_user(cls, user):
         return cls(**{a: getattr(user, a) for a in 'id first_name last_name username language_code'.split()})
 
+    @classmethod
+    def get_or_create(cls, tg_user, _update=False, _flag=False):
+        is_created = is_updated = False
+        u = User.query.filter(User.id == tg_user.id).first()
+        if not u:
+            is_created = True
+            u = cls.from_telegram_user(tg_user)
+        elif _update:
+            for a in 'last_name first_name username language_code'.split():
+                if getattr(user, a) != getattr(tg_user, a):
+                    setattr(user, a, getattr(tg_user, a))
+                    is_updated = True
+        
+        if is_created or is_updated:
+            db.session.add(u)
+            db.session.commit()
+        assert u is not None, 'unregistered user: %r' % u
+
+        return u if not _flag else (u, is_created)
+
     @property
     def full_name(self) -> str:
         return ' '.join(filter(bool, (self.first_name, self.last_name)))
