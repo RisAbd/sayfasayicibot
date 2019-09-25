@@ -3,7 +3,7 @@ import time
 from datetime import datetime, timedelta
 import logging
 
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, abort
 
 from telegram.telegram import Update, Chat, Bot, Message, InlineKeyboardMarkup
 
@@ -20,8 +20,10 @@ logger = logging.getLogger(__name__)
 bp = Blueprint('webhook', __name__)
 
 
-@bp.route('/', methods='GET POST PUT PATCH DELETE'.split())
-def index():
+@bp.route('/<bot_api_token>/', methods='GET POST PUT PATCH DELETE'.split())
+def index(bot_api_token):
+    if bot_api_token != current_app.bot._api_token:
+        return abort(404)
     update = Update.from_(request.json)
     
     if update.type == Update.Type.MESSAGE:
@@ -246,7 +248,7 @@ def _user_book(bot: Bot, update: Update):
 
 
 def _send_message_back(bot: Bot, update: Update):
-    bot.send_chat_action(update.message.chat, Chat.Action.TYPING)
+    # bot.send_chat_action(update.message.chat, Chat.Action.TYPING)
     time.sleep(0.4)
     return jsonify(bot.send_message(
         chat=update.message.chat, 
