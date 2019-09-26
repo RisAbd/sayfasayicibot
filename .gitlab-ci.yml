@@ -5,6 +5,7 @@ variables:
 
 before_script:
   - python --version
+  - pip install pipenv
   - pipenv install --system --deploy --ignore-pipfile --dev
 
 stages:
