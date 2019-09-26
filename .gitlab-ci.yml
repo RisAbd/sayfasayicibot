@@ -10,8 +10,14 @@ before_script:
 
 stages:
   - Static Analysis
+  - Test
 
 flake8:
   stage: Static Analysis
   script:
   - flake8 app/
+
+pytest:
+  stage: Test
+  script:
+  - pytest tests/
