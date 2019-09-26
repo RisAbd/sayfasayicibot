@@ -22,7 +22,9 @@ class Book(db.Model):
     title = db.Column(db.String, nullable=False)
     year = db.Column(db.Integer, nullable=True)
 
-    author_id = db.Column(db.Integer, db.ForeignKey('authors.id'), nullable=False)
+    author_id = db.Column(db.Integer,
+                          db.ForeignKey('authors.id'),
+                          nullable=False)
 
     author = db.relationship(Author, back_populates='books')
     users = db.relationship('User', back_populates='book')
@@ -35,25 +37,28 @@ class Book(db.Model):
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
-    
+
     first_name = db.Column(db.String)
     last_name = db.Column(db.String)
-    username = db.Column(db.String) 
+    username = db.Column(db.String)
     language_code = db.Column(db.String, default='en')
 
     book_id = db.Column(db.Integer, db.ForeignKey('books.id'), nullable=True)
-    
+
     book = db.relationship(Book, back_populates='users')
     sayfalar = db.relationship('Sayfa', back_populates='user')
 
     @classmethod
     def from_telegram_user(cls, user):
-        return cls(**{a: getattr(user, a) for a in 'id first_name last_name username language_code'.split()})
+        return cls(**{
+            a: getattr(user, a)
+            for a in 'id first_name last_name username language_code'.split()
+        })
 
     @classmethod
     def get_or_create(cls, tg_user, _update=False, _flag=False):
         is_created = is_updated = False
-        u = User.query.filter(User.id == tg_user.id).first()
+        u = user = User.query.filter(User.id == tg_user.id).first()
         if not u:
             is_created = True
             u = cls.from_telegram_user(tg_user)
@@ -62,7 +67,7 @@ class User(db.Model):
                 if getattr(user, a) != getattr(tg_user, a):
                     setattr(user, a, getattr(tg_user, a))
                     is_updated = True
-        
+
         if is_created or is_updated:
             db.session.add(u)
             db.session.commit()
@@ -81,7 +86,9 @@ class User(db.Model):
 class Sayfa(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     count = db.Column(db.Integer, nullable=False)
-    time = db.Column(db.DateTime, nullable=False, default=datetime.now, server_default=db.func.now())
+    time = db.Column(db.DateTime, nullable=False,
+                     default=datetime.now,
+                     server_default=db.func.now())
 
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     book_id = db.Column(db.Integer, db.ForeignKey('books.id'), nullable=False)

@@ -1,6 +1,5 @@
-#!/usr/bin/env python3 
+#!/usr/bin/env python3
 
-import time
 import logging
 from flask_sqlalchemy import SQLAlchemy
 from flask import Flask
@@ -16,7 +15,7 @@ db = SQLAlchemy()
 
 def make_app():
     bot = telegram.Bot.by(token=config.BOT_API_TOKEN)
-    
+
     target_webhook_url = config.BOT_WEBHOOK_URL
     if not urlparse(target_webhook_url).path:
         target_webhook_url += '/{}/'.format(bot._api_token)
@@ -35,7 +34,6 @@ def make_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = config.DATABASE_URL
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     db.init_app(app)
-    from . import models
     app.db = db
     app.bot = bot
 
