@@ -14,6 +14,16 @@ db = SQLAlchemy()
 
 
 def make_app():
+
+    app = Flask(__name__)
+    app.config.from_object(config)
+    app.cli.add_command(management.bootstrap)
+    app.config['SQLALCHEMY_DATABASE_URI'] = config.DATABASE_URL
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    if app.debug:
+        logging.basicConfig(level=config.LOGLEVEL)
+
     bot = telegram.Bot.by(token=config.BOT_API_TOKEN)
 
     target_webhook_url = config.BOT_WEBHOOK_URL
@@ -28,11 +38,6 @@ def make_app():
         r = bot.set_webhook(target_webhook_url)
         logger.info('SET_WEBHOOK: %r', r)
 
-    app = Flask(__name__)
-    app.config.from_object(config)
-    app.cli.add_command(management.bootstrap)
-    app.config['SQLALCHEMY_DATABASE_URI'] = config.DATABASE_URL
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     db.init_app(app)
     app.db = db
     app.bot = bot
