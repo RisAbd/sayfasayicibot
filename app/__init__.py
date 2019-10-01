@@ -6,11 +6,14 @@ from flask import Flask
 from telegram import telegram
 from . import config, management
 from urllib.parse import urlparse
+from flask_migrate import Migrate
 
 logger = logging.getLogger(__name__)
 logger.setLevel(config.LOGLEVEL)
 
+
 db = SQLAlchemy()
+migrate = Migrate(db=db)
 
 
 def make_app():
@@ -39,6 +42,7 @@ def make_app():
         logger.info('SET_WEBHOOK: %r', r)
 
     db.init_app(app)
+    migrate.init_app(app)
     app.db = db
     app.bot = bot
 
