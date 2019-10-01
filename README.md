@@ -13,5 +13,6 @@ BOT_WEBHOOK_URL=https://example.com/bot
 $ git submodule init
 $ git submodule update
 $ pipenv run flask bootstrap
+$ pipenv run flask db upgrade
 $ pipenv run gunicorn -w1 -b :5000 'app:make_app()'
 ```

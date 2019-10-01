@@ -11,6 +11,3 @@ def bootstrap():
     print('making resources directory...', end=' ')
     os.makedirs(config.RESOURCES_DIRECTORY, exist_ok=True)
     print('done.')
-    print('creating database schema...', end=' ')
-    db.create_all()
-    print('done.')
