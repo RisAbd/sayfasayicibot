@@ -82,13 +82,13 @@ def _save_user(bot: Bot, update: Update):
 def _save_user_book(bot: Bot, update: Update, bot_command: str):
     user = models.User.get_or_create(update.callback_query.from_)
 
-    book_id = bot_command.lstrip(BOOK_CMD)
+    book_id_raw = bot_command.lstrip(BOOK_CMD)
     try:
-        book_id = int(book_id)
+        book_id = int(book_id_raw)
     except ValueError:
         return jsonify(bot.send_message(
             chat=update.callback_query.message.chat,
-            text='unknown book: %s' % book_id,
+            text='unknown book: %s' % book_id_raw,
             as_webhook_response=True,
         ))
 
