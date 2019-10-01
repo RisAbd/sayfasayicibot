@@ -8,7 +8,7 @@ LOGLEVEL=DEBUG
 FLASK_APP=app:make_app()
 FLASK_DEBUG=1
 FLASK_ENV=development
-BOT_WEBHOOK_URL=https://example.com/bot
+BOT_WEBHOOK_URL=https://example.com
 ' >> .env
 $ git submodule init
 $ git submodule update
