@@ -104,11 +104,15 @@ def _save_user_book(bot: Bot, update: Update, bot_command: str):
     db.session.add(user)
     db.session.commit()
 
-    return jsonify(bot.send_message(
-        chat=update.callback_query.message.chat,
+    msg = update.callback_query.message
+    bot.edit_message_reply_markup(
+        chat=msg.chat,
+        message=msg,
+        markup=_books_markup(user_book=book),
+    )
+    return jsonify(bot.answer_callback_query(
+        update.callback_query,
         text='`%s` is set as your default book' % book.title,
-        parse_mode=Message.ParseMode.MARKDOWN,
-        as_webhook_response=True,
     ))
 
 
