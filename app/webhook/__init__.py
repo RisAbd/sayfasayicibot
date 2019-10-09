@@ -139,14 +139,15 @@ def _save_pages(bot: Bot, update: Update):
     db.session.add(sayfa)
     db.session.commit()
 
-    return jsonify(bot.send_message(
+    bot.send_message(
         chat=update.message.chat,
         text="you've read %s sayfa of %s, Allah kabul etsin!" % (
             sayfa.count,
             user.book.title
             ),
-        as_webhook_response=True,
-    ))
+        # as_webhook_response=True,
+    )
+    return _user_stats(bot, update)
 
 
 def _send_books_list(bot: Bot, update: Update):
