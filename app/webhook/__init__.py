@@ -170,7 +170,7 @@ def _books_markup(user=None, user_book=None):
     markup = InlineKeyboardMarkup.from_rows_of(
         buttons=[
             InlineKeyboardMarkup.Button(
-                text='{}{}'.format(b.title, '' if b != user_book else ' (+)'),
+                text='{}{}'.format(b.title, '' if b != user_book else ' (✓)'),
                 callback_data='{}{}{}'.format(
                     CALLBACK_DATA_CMD_PREFIX,
                     BOOK_CMD,
