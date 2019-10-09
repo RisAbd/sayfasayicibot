@@ -150,17 +150,15 @@ def _save_pages(bot: Bot, update: Update):
     return _user_stats(bot, update)
 
 
-def _send_books_list(bot: Bot, update: Update):
+def _books_markup(user=None, user_book=None):
+    user_book = user_book or (user and user.book)
 
     books = models.Book.query.options(joinedload('author')).all()
-
-    user = models.User.get_or_create(update.message.from_)
-    user_book = user.book
 
     markup = InlineKeyboardMarkup.from_rows_of(
         buttons=[
             InlineKeyboardMarkup.Button(
-                text='{}{}'.format(b.title, '' if b != user_book else '(+)'),
+                text='{}{}'.format(b.title, '' if b != user_book else ' (+)'),
                 callback_data='{}{}{}'.format(
                     CALLBACK_DATA_CMD_PREFIX,
                     BOOK_CMD,
@@ -170,6 +168,13 @@ def _send_books_list(bot: Bot, update: Update):
             for b in books
         ]
     )
+    return markup
+
+
+def _send_books_list(bot: Bot, update: Update):
+    user = models.User.get_or_create(update.message.from_)
+
+    markup = _books_markup(user=user)
 
     return jsonify(bot.send_message(
         chat=update.message.chat,
