@@ -100,11 +100,19 @@ def _save_user_book(bot: Bot, update: Update, bot_command: str):
             as_webhook_response=True,
         ))
 
+    if book == user.book:
+        return jsonify(bot.answer_callback_query(
+            update.callback_query,
+            text='`%s` is already your default book' % book.title,
+        ))
+
+
     user.book = book
     db.session.add(user)
     db.session.commit()
 
     msg = update.callback_query.message
+
     bot.edit_message_reply_markup(
         chat=msg.chat,
         message=msg,
