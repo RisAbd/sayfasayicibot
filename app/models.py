@@ -44,6 +44,7 @@ class User(db.Model):
 
     book = db.relationship(Book, back_populates="users")
     sayfalar = db.relationship("Sayfa", back_populates="user")
+    checkpoints = db.relationship("Checkpoint", back_populates="user")
 
     @classmethod
     def from_telegram_user(cls, user):
@@ -97,3 +98,25 @@ class Sayfa(db.Model):
 
     def __str__(self):
         return str(self.count)
+
+
+class Checkpoint(db.Model):
+
+    __tablename__ = "checkpoints"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=True)
+    time = db.Column(
+        db.DateTime, nullable=False, default=datetime.now, server_default=db.func.now()
+    )
+
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+
+    user = db.relationship(User, back_populates="checkpoints")
+
+    def __str__(self):
+        return (self.name and self.name + ", " or "") + self.time.strftime(
+            "%d/%m/%Y %H:%M:%S"
+        )
