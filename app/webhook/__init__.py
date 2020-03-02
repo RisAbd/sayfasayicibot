@@ -288,7 +288,6 @@ def _user_sayfa(bot: Bot, update: Update):
 @jsonified_response
 def _user_checkpoint(bot: Bot, update: Update):
     user = models.User.get_or_create(update.message.from_)
-    now = datetime.now()
 
     name = update.message.bot_command_argument.strip() or None
 

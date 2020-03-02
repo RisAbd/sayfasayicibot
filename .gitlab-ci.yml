@@ -15,7 +15,7 @@ stages:
 flake8:
   stage: Static Analysis
   script:
-  - flake8 app/
+  - flake8
 
 pytest:
   stage: Test
