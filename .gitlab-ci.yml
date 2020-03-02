@@ -9,15 +9,14 @@ before_script:
   - pipenv install --system --deploy --ignore-pipfile --dev
 
 stages:
-  - Static Analysis
-  - Test
+  - test
 
 flake8:
-  stage: Static Analysis
+  stage: test
   script:
   - flake8
 
 pytest:
-  stage: Test
+  stage: test
   script:
   - pytest tests/
