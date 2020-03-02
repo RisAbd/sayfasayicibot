@@ -196,26 +196,28 @@ def _user_stats(bot: Bot, update: Update):
     user = models.User.get_or_create(update.message.from_)
 
     now = datetime.now()
+
+    user_sayfa_q = db.session.query(db.func.sum(models.Sayfa.count)).filter(
+        models.Sayfa.user == user
+    )
+
     last_day_sayfa = (
-        db.session.query(db.func.sum(models.Sayfa.count))
-        .filter(models.Sayfa.user == user)
-        .filter(models.Sayfa.time > now - timedelta(days=1))
-        .scalar()
-        or 0
+        user_sayfa_q.filter(models.Sayfa.time > now - timedelta(days=1)).scalar() or 0
     )
     last_week_sayfa = (
-        db.session.query(db.func.sum(models.Sayfa.count))
-        .filter(models.Sayfa.user == user)
-        .filter(models.Sayfa.time > now - timedelta(days=7))
-        .scalar()
-        or 0
+        user_sayfa_q.filter(models.Sayfa.time > now - timedelta(days=7)).scalar() or 0
     )
     last_month_sayfa = (
-        db.session.query(db.func.sum(models.Sayfa.count))
-        .filter(models.Sayfa.user == user)
-        .filter(models.Sayfa.time > now - timedelta(days=30))
-        .scalar()
-        or 0
+        user_sayfa_q.filter(models.Sayfa.time > now - timedelta(days=30)).scalar() or 0
+    )
+
+    checkpoint = (
+        models.Checkpoint.query.filter_by(user=user)
+        .order_by(models.Checkpoint.time.desc())
+        .first()
+    )
+    last_checkpoint_sayfa = checkpoint and (
+        user_sayfa_q.filter(models.Sayfa.time > checkpoint.time).scalar() or 0
     )
 
     text = """
@@ -223,8 +225,17 @@ you have read
  - `{ds}` sayfa for last day
  - `{ws}` sayfa for last week
  - `{ms}` sayfa for last month
-""".format(
-        ds=last_day_sayfa, ws=last_week_sayfa, ms=last_month_sayfa
+"""
+
+    if last_checkpoint_sayfa is not None:
+        text += " - `{chs}` sayfa from previous checkpoint ({ch})\n"
+
+    text = text.format(
+        ds=last_day_sayfa,
+        ws=last_week_sayfa,
+        ms=last_month_sayfa,
+        chs=last_checkpoint_sayfa,
+        ch=checkpoint,
     )
 
     return bot.send_message(
