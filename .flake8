@@ -1,0 +1,16 @@
+[flake8]
+max-line-length = 88
+
+extend-ignore = 
+    # black formats slices as recommended in PEP8, E203  is not compliant
+    E203,
+    # black breaks line before binary operators
+    W503,
+
+exclude =
+    # migrations are generated automatically
+    migrations,
+    # todo:
+    tests,
+    # submodule code
+    telegram,

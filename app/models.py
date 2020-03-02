@@ -21,9 +21,7 @@ class Book(db.Model):
     title = db.Column(db.String, nullable=False)
     year = db.Column(db.Integer, nullable=True)
 
-    author_id = db.Column(
-        db.Integer, db.ForeignKey("authors.id"), nullable=False
-    )
+    author_id = db.Column(db.Integer, db.ForeignKey("authors.id"), nullable=False)
 
     author = db.relationship(Author, back_populates="books")
     users = db.relationship("User", back_populates="book")
@@ -52,7 +50,7 @@ class User(db.Model):
         return cls(
             **{
                 a: getattr(user, a)
-                for a in "id first_name last_name username language_code".split()
+                for a in ["id", "first_name", "last_name", "username", "language_code"]
             }
         )
 
@@ -88,10 +86,7 @@ class Sayfa(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     count = db.Column(db.Integer, nullable=False)
     time = db.Column(
-        db.DateTime,
-        nullable=False,
-        default=datetime.now,
-        server_default=db.func.now(),
+        db.DateTime, nullable=False, default=datetime.now, server_default=db.func.now()
     )
 
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)

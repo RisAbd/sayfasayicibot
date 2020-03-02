@@ -5,9 +5,7 @@ import logging
 BOT_API_TOKEN = config("BOT_API_TOKEN", cast=str)
 BOT_WEBHOOK_URL = config("BOT_WEBHOOK_URL", cast=str)
 
-RESOURCES_DIRECTORY = config(
-    "RESOURCES_DIRECTORY", cast=str, default="./resources/"
-)
+RESOURCES_DIRECTORY = config("RESOURCES_DIRECTORY", cast=str, default="./resources/")
 _DEFAULT_DATABASE_URL = "sqlite:///" + os.path.join(
     os.path.abspath(RESOURCES_DIRECTORY), "data.db"
 )
