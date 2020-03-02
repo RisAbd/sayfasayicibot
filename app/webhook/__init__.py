@@ -60,6 +60,8 @@ def index(bot_api_token):
         return _user_sayfa(bot, update)
     elif bot_command == "/mybook":
         return _user_book(bot, update)
+    elif bot_command == "/checkpoint":
+        return _user_checkpoint(bot, update)
     elif bot_command and bot_command.startswith(BOOK_CMD):
         return _save_user_book(bot, update, bot_command)
     elif update.message.text.strip().isdigit():
@@ -270,6 +272,27 @@ def _user_sayfa(bot: Bot, update: Update):
         parse_mode=Message.ParseMode.MARKDOWN,
         as_webhook_response=True,
     )
+
+
+@jsonified_response
+def _user_checkpoint(bot: Bot, update: Update):
+    user = models.User.get_or_create(update.message.from_)
+    now = datetime.now()
+
+    name = update.message.bot_command_argument.strip() or None
+
+    user_stats_before_new_checkpoint = _user_stats(bot, update)
+
+    checkpoint = models.Checkpoint(user=user, name=name)
+    db.session.add(checkpoint)
+    db.session.commit()
+
+    bot.send_message(
+        chat=update.message.chat,
+        text="you've successfully created checkpoint: %s" % (checkpoint),
+        # as_webhook_response=True,
+    )
+    raise jsonified_response.Ignore(user_stats_before_new_checkpoint)
 
 
 @jsonified_response
