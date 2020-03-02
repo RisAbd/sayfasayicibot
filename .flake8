@@ -10,7 +10,5 @@ extend-ignore =
 exclude =
     # migrations are generated automatically
     migrations,
-    # todo:
-    tests,
     # submodule code
     telegram,
