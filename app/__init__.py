@@ -21,8 +21,8 @@ def make_app():
     app = Flask(__name__)
     app.config.from_object(config)
     app.cli.add_command(management.bootstrap)
-    app.config['SQLALCHEMY_DATABASE_URI'] = config.DATABASE_URL
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config["SQLALCHEMY_DATABASE_URI"] = config.DATABASE_URL
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     if app.debug:
         logging.basicConfig(level=config.LOGLEVEL)
@@ -31,15 +31,15 @@ def make_app():
 
     target_webhook_url = config.BOT_WEBHOOK_URL
     if not urlparse(target_webhook_url).path:
-        target_webhook_url += '/{}/'.format(bot._api_token)
+        target_webhook_url += "/{}/".format(bot._api_token)
 
     webhook_url = bot.webhookinfo().url
-    logger.debug('WEBHOOK_URL: %r', webhook_url)
+    logger.debug("WEBHOOK_URL: %r", webhook_url)
 
     if webhook_url != target_webhook_url:
         bot.delete_webhook()
         r = bot.set_webhook(target_webhook_url)
-        logger.info('SET_WEBHOOK: %r', r)
+        logger.info("SET_WEBHOOK: %r", r)
 
     db.init_app(app)
     migrate.init_app(app)
@@ -47,6 +47,7 @@ def make_app():
     app.bot = bot
 
     from .webhook import bp
-    app.register_blueprint(bp, url_prefix='')
+
+    app.register_blueprint(bp, url_prefix="")
 
     return app
