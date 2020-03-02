@@ -1,6 +1,9 @@
 import time
+
 from datetime import datetime, timedelta
 import logging
+
+from sqlalchemy.orm import joinedload
 
 from flask import Blueprint, request, jsonify, current_app, abort
 
@@ -8,7 +11,7 @@ from telegram.telegram import Update, Chat, Bot, Message, InlineKeyboardMarkup
 
 from app import models, db
 
-from sqlalchemy.orm import joinedload
+from .utils import jsonified_response
 
 
 BOOK_CMD = "/sb_"
@@ -65,19 +68,19 @@ def index(bot_api_token):
         return _send_message_back(bot, update)
 
 
+@jsonified_response
 def _save_user(bot: Bot, update: Update):
     user, is_created = models.User.get_or_create(
         update.message.from_, _flag=True, _update=True
     )
-    return jsonify(
-        bot.send_message(
-            chat=update.message.chat,
-            text="Welcome{}, {}".format("" if is_created else " back", user.full_name),
-            as_webhook_response=True,
-        )
+    return bot.send_message(
+        chat=update.message.chat,
+        text="Welcome{}, {}".format("" if is_created else " back", user.full_name),
+        as_webhook_response=True,
     )
 
 
+@jsonified_response
 def _save_user_book(bot: Bot, update: Update, bot_command: str):
     user = models.User.get_or_create(update.callback_query.from_)
 
@@ -85,30 +88,23 @@ def _save_user_book(bot: Bot, update: Update, bot_command: str):
     try:
         book_id = int(book_id_raw)
     except ValueError:
-        return jsonify(
-            bot.send_message(
-                chat=update.callback_query.message.chat,
-                text="unknown book: %s" % book_id_raw,
-                as_webhook_response=True,
-            )
+        return bot.send_message(
+            chat=update.callback_query.message.chat,
+            text="unknown book: %s" % book_id_raw,
+            as_webhook_response=True,
         )
 
     book = models.Book.query.get(book_id)
     if not book:
-        return jsonify(
-            bot.send_message(
-                chat=update.callback_query.message.chat,
-                text="unknown book: %s" % book_id,
-                as_webhook_response=True,
-            )
+        return bot.send_message(
+            chat=update.callback_query.message.chat,
+            text="unknown book: %s" % book_id,
+            as_webhook_response=True,
         )
 
     if book == user.book:
-        return jsonify(
-            bot.answer_callback_query(
-                update.callback_query,
-                text="`%s` is already your default book" % book.title,
-            )
+        return bot.answer_callback_query(
+            update.callback_query, text="`%s` is already your default book" % book.title
         )
 
     user.book = book
@@ -120,13 +116,12 @@ def _save_user_book(bot: Bot, update: Update, bot_command: str):
     bot.edit_message_reply_markup(
         chat=msg.chat, message=msg, markup=_books_markup(user_book=book)
     )
-    return jsonify(
-        bot.answer_callback_query(
-            update.callback_query, text="`%s` is set as your default book" % book.title
-        )
+    return bot.answer_callback_query(
+        update.callback_query, text="`%s` is set as your default book" % book.title
     )
 
 
+@jsonified_response
 def _save_pages(bot: Bot, update: Update):
 
     raw_sayfa_value = update.message.text
@@ -134,24 +129,20 @@ def _save_pages(bot: Bot, update: Update):
     try:
         sayfa_count = int(raw_sayfa_value)
     except ValueError:
-        return jsonify(
-            bot.send_message(
-                chat=update.message.chat,
-                text="misunderstood your sayfa value: `%s`" % raw_sayfa_value,
-                parse_mode=Message.ParseMode.MARKDOWN,
-                as_webhook_response=True,
-            )
+        return bot.send_message(
+            chat=update.message.chat,
+            text="misunderstood your sayfa value: `%s`" % raw_sayfa_value,
+            parse_mode=Message.ParseMode.MARKDOWN,
+            as_webhook_response=True,
         )
 
     user = models.User.get_or_create(update.message.from_)
 
     if not user.book:
-        return jsonify(
-            bot.send_message(
-                chat=update.message.chat,
-                text="you haven't set your current book yet",
-                as_webhook_response=True,
-            )
+        return bot.send_message(
+            chat=update.message.chat,
+            text="you haven't set your current book yet",
+            as_webhook_response=True,
         )
 
     sayfa = models.Sayfa(user=user, book=user.book, count=sayfa_count)
@@ -164,7 +155,7 @@ def _save_pages(bot: Bot, update: Update):
         % (sayfa.count, user.book.title),
         # as_webhook_response=True,
     )
-    return _user_stats(bot, update)
+    raise jsonified_response.Ignore(_user_stats(bot, update))
 
 
 def _books_markup(user=None, user_book=None):
@@ -184,21 +175,21 @@ def _books_markup(user=None, user_book=None):
     return markup
 
 
+@jsonified_response
 def _send_books_list(bot: Bot, update: Update):
     user = models.User.get_or_create(update.message.from_)
 
     markup = _books_markup(user=user)
 
-    return jsonify(
-        bot.send_message(
-            chat=update.message.chat,
-            text="here is a list of available books",
-            reply_markup=markup,
-            as_webhook_response=True,
-        )
+    return bot.send_message(
+        chat=update.message.chat,
+        text="here is a list of available books",
+        reply_markup=markup,
+        as_webhook_response=True,
     )
 
 
+@jsonified_response
 def _user_stats(bot: Bot, update: Update):
     user = models.User.get_or_create(update.message.from_)
 
@@ -234,13 +225,11 @@ you have read
         ds=last_day_sayfa, ws=last_week_sayfa, ms=last_month_sayfa
     )
 
-    return jsonify(
-        bot.send_message(
-            chat=update.message.chat,
-            text=text,
-            parse_mode=Message.ParseMode.MARKDOWN,
-            as_webhook_response=True,
-        )
+    return bot.send_message(
+        chat=update.message.chat,
+        text=text,
+        parse_mode=Message.ParseMode.MARKDOWN,
+        as_webhook_response=True,
     )
 
 
@@ -255,6 +244,7 @@ def _map_sayfa(sayfa, now):
     )
 
 
+@jsonified_response
 def _user_sayfa(bot: Bot, update: Update):
     user = models.User.get_or_create(update.message.from_)
 
@@ -274,59 +264,52 @@ def _user_sayfa(bot: Bot, update: Update):
         or "you have not read this month"
     )
 
-    return jsonify(
-        bot.send_message(
-            chat=update.message.chat,
-            text=text,
-            parse_mode=Message.ParseMode.MARKDOWN,
-            as_webhook_response=True,
-        )
+    return bot.send_message(
+        chat=update.message.chat,
+        text=text,
+        parse_mode=Message.ParseMode.MARKDOWN,
+        as_webhook_response=True,
     )
 
 
+@jsonified_response
 def _user_book(bot: Bot, update: Update):
     user = models.User.get_or_create(update.message.from_)
 
     if not user.book:
-        return jsonify(
-            bot.send_message(
-                chat=update.message.chat,
-                text="you haven't set your book yet"
-                " (use /listbooks to see avalable books)",
-                as_webhook_response=True,
-            )
-        )
-
-    return jsonify(
-        bot.send_message(
+        return bot.send_message(
             chat=update.message.chat,
-            text="your current book is `%s`" % user.book.title,
-            parse_mode=Message.ParseMode.MARKDOWN,
+            text="you haven't set your book yet"
+            " (use /listbooks to see avalable books)",
             as_webhook_response=True,
         )
+
+    return bot.send_message(
+        chat=update.message.chat,
+        text="your current book is `%s`" % user.book.title,
+        parse_mode=Message.ParseMode.MARKDOWN,
+        as_webhook_response=True,
     )
 
 
+@jsonified_response
 def _send_message_back(bot: Bot, update: Update):
     # bot.send_chat_action(update.message.chat, Chat.Action.TYPING)
     time.sleep(0.4)
-    return jsonify(
-        bot.send_message(
-            chat=update.message.chat,
-            text="misunderstood: %s" % update.message.text,
-            as_webhook_response=True,
-        )
+    return bot.send_message(
+        chat=update.message.chat,
+        text="misunderstood: %s" % update.message.text,
+        as_webhook_response=True,
     )
 
 
+@jsonified_response
 def _send_audio(bot: Bot, update: Update):
     bot.send_chat_action(update.message.chat, Chat.Action.UPLOAD_AUDIO)
     time.sleep(0.5)
-    return jsonify(
-        bot.send_document(
-            update.message.chat,
-            "CQADAgADvAMAArCqWEsSWuzVBRHRfRYE",
-            "Hicranda gonlum",
-            as_webhook_response=True,
-        )
+    return bot.send_document(
+        update.message.chat,
+        "CQADAgADvAMAArCqWEsSWuzVBRHRfRYE",
+        "Hicranda gonlum",
+        as_webhook_response=True,
     )
