@@ -157,7 +157,7 @@ def _save_pages(bot: Bot, update: Update):
         % (sayfa.count, user.book.title),
         # as_webhook_response=True,
     )
-    raise jsonified_response.Ignore(_user_stats(bot, update))
+    return jsonified_response.bypass(_user_stats(bot, update))
 
 
 def _books_markup(user=None, user_book=None):
@@ -291,7 +291,7 @@ def _user_checkpoint(bot: Bot, update: Update):
 
     name = update.message.bot_command_argument.strip() or None
 
-    user_stats_before_new_checkpoint = _user_stats(bot, update)
+    stats = _user_stats(bot, update) if user.checkpoints.any() else {}
 
     checkpoint = models.Checkpoint(user=user, name=name)
     db.session.add(checkpoint)
@@ -302,7 +302,7 @@ def _user_checkpoint(bot: Bot, update: Update):
         text="you've successfully created checkpoint: %s" % (checkpoint),
         # as_webhook_response=True,
     )
-    raise jsonified_response.Ignore(user_stats_before_new_checkpoint)
+    return stats
 
 
 @jsonified_response

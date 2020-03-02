@@ -3,19 +3,24 @@ from functools import wraps
 from flask import jsonify
 
 
-class IgnoreJSONify(BaseException):
-    pass
+class _BypassJSONify:
+    def __init__(self, v):
+        self.v = v
 
 
 def jsonified_response(f):
+    """decorator that automatically jsonifies return value
+
+    use jsonified_response.bypass() or .skip() to skip jsonifying
+    """
     @wraps(f)
     def wrapper(*args, **kwargs):
-        try:
-            return jsonify(f(*args, **kwargs))
-        except IgnoreJSONify as e:
-            return e.args[0]
+        r = f(*args, **kwargs)
+        if isinstance(r, _BypassJSONify):
+            r = r.v
+        return jsonify(r)
 
     return wrapper
 
 
-jsonified_response.Ignore = IgnoreJSONify
+jsonified_response.bypass = jsonified_response.skip = _BypassJSONify
