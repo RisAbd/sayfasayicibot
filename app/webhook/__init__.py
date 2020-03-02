@@ -72,7 +72,9 @@ def _save_user(bot: Bot, update: Update):
     return jsonify(
         bot.send_message(
             chat=update.message.chat,
-            text="Welcome{}, {}".format("" if is_created else " back", user.full_name),
+            text="Welcome{}, {}".format(
+                "" if is_created else " back", user.full_name
+            ),
             as_webhook_response=True,
         )
     )
@@ -122,7 +124,8 @@ def _save_user_book(bot: Bot, update: Update, bot_command: str):
     )
     return jsonify(
         bot.answer_callback_query(
-            update.callback_query, text="`%s` is set as your default book" % book.title
+            update.callback_query,
+            text="`%s` is set as your default book" % book.title,
         )
     )
 
@@ -176,7 +179,9 @@ def _books_markup(user=None, user_book=None):
         buttons=[
             InlineKeyboardMarkup.Button(
                 text="{}{}".format(b.title, "" if b != user_book else " (✓)"),
-                callback_data="{}{}{}".format(CALLBACK_DATA_CMD_PREFIX, BOOK_CMD, b.id),
+                callback_data="{}{}{}".format(
+                    CALLBACK_DATA_CMD_PREFIX, BOOK_CMD, b.id
+                ),
             )
             for b in books
         ]
@@ -262,7 +267,9 @@ def _user_sayfa(bot: Bot, update: Update):
     text = (
         "\n".join(
             _map_sayfa(sayfa, now=now)
-            for sayfa in models.Sayfa.query.options(joinedload(models.Sayfa.book))
+            for sayfa in models.Sayfa.query.options(
+                joinedload(models.Sayfa.book)
+            )
             .filter(models.Sayfa.user == user)
             .filter(
                 models.Sayfa.time
