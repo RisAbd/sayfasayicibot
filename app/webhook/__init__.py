@@ -106,7 +106,6 @@ def _save_user_book(bot: Bot, update: Update, bot_command: str):
             text='`%s` is already your default book' % book.title,
         ))
 
-
     user.book = book
     db.session.add(user)
     db.session.commit()
