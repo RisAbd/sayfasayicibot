@@ -291,18 +291,34 @@ def _user_checkpoint(bot: Bot, update: Update):
 
     name = update.message.bot_command_argument.strip() or None
 
-    stats = _user_stats(bot, update) if user.checkpoints.any() else {}
+    if db.session.query(
+        models.Checkpoint.query.filter(models.User.id == user.id).exists()
+    ).scalar():
+        stats = _user_stats(bot, update)
+    else:
+        stats = {}
 
     checkpoint = models.Checkpoint(user=user, name=name)
     db.session.add(checkpoint)
     db.session.commit()
 
-    bot.send_message(
-        chat=update.message.chat,
-        text="you've successfully created checkpoint: %s" % (checkpoint),
-        # as_webhook_response=True,
-    )
-    return stats
+    def main_response(as_resp=True):
+        if stats:
+            text = "new checkpoint created: %s"
+        else:
+            text = "you created your first checkpoint: %s"
+
+        return bot.send_message(
+            chat=update.message.chat,
+            text=text % (checkpoint),
+            as_webhook_response=as_resp,
+        )
+
+    if not stats:
+        return main_response()
+
+    main_response(as_resp=False)
+    return jsonified_response.skip(stats)
 
 
 @jsonified_response

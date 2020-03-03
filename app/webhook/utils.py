@@ -13,11 +13,12 @@ def jsonified_response(f):
 
     use jsonified_response.bypass() or .skip() to skip jsonifying
     """
+
     @wraps(f)
     def wrapper(*args, **kwargs):
         r = f(*args, **kwargs)
         if isinstance(r, _BypassJSONify):
-            r = r.v
+            return r.v
         return jsonify(r)
 
     return wrapper
